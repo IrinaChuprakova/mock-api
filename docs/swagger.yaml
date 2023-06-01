@@ -24,6 +24,22 @@ definitions:
       url:
         type: string
     type: object
+  app.orderRequest:
+    properties:
+      cards:
+        items:
+          $ref: '#/definitions/app.Card'
+        type: array
+    type: object
+  app.orderResponse:
+    properties:
+      cards:
+        items:
+          $ref: '#/definitions/app.Card'
+        type: array
+      created_at:
+        type: string
+    type: object
 info:
   contact: {}
   title: Swagger UI
@@ -168,7 +184,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/app.Card'
+              $ref: '#/definitions/app.orderResponse'
             type: array
       summary: Получить массив карточек заказов
       tags:
@@ -182,14 +198,12 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/app.Card'
+          $ref: '#/definitions/app.orderRequest'
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/app.Card'
+        "201":
+          description: Created
       summary: добавить карточку в список заказов
       tags:
       - order

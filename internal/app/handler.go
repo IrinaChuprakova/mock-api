@@ -6,8 +6,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -26,6 +28,11 @@ type Card struct {
 	Name  string  `json:"name" bson:"name"`
 	Price float64 `json:"price" bson:"price"`
 	Img   string  `json:"img" bson:"img"`
+}
+
+type Order struct {
+	CreatedAt time.Time `json:"created_at" bson:"created_at"`
+	Cards     []Card    `json:"cards" bson:"cards"`
 }
 
 // AllCards godoc
@@ -254,12 +261,17 @@ func DeleteCart(db *mongo.Database) http.HandlerFunc {
 	}
 }
 
+type orderResponse struct {
+	CreatedAt string `json:"created_at"`
+	Cards     []Card `json:"cards"`
+}
+
 // GetOrders godoc
 // @Summary      Получить массив карточек заказов
 // @Tags         order
 // @Produce      json
 // @Content-Type application/json
-// @Success      200 {object} []Card
+// @Success      200 {object} []orderResponse
 // @Router       /api/cards/order [get]
 func GetOrders(db *mongo.Database) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
@@ -270,15 +282,37 @@ func GetOrders(db *mongo.Database) http.HandlerFunc {
 			return
 		}
 
-		var data []Card
+		var data []Order
 		if err = cursor.All(request.Context(), &data); err != nil {
 			log.Println(err)
 			writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		writeJSON(http.StatusOK, writer, data)
+		result := make(map[string][]Card)
+		for _, item := range data {
+			key := item.CreatedAt.Format("02.01.2006")
+			result[key] = append(result[key], item.Cards...)
+		}
+
+		var response []orderResponse
+		for key, cards := range result {
+			response = append(response, orderResponse{
+				CreatedAt: key,
+				Cards:     cards,
+			})
+		}
+
+		sort.Slice(response, func(i, j int) bool {
+			return response[i].CreatedAt > response[j].CreatedAt
+		})
+
+		writeJSON(http.StatusOK, writer, response)
 	}
+}
+
+type orderRequest struct {
+	Cards []Card `json:"cards"`
 }
 
 // PostOrder godoc
@@ -287,24 +321,29 @@ func GetOrders(db *mongo.Database) http.HandlerFunc {
 // @Accept       json
 // @Produce      json
 // @Content-Type application/json
-// @param        request body Card true "body"
-// @Success      200 {object} Card
+// @param        request body orderRequest true "body"
+// @Success      201
 // @Router       /api/cards/order [post]
 func PostOrder(db *mongo.Database) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		var body Card
+		var body orderRequest
 		if !handleRequest(writer, request, &body) {
 			return
 		}
 
-		_, err := db.Collection("orders").InsertOne(request.Context(), body)
+		order := Order{
+			CreatedAt: time.Now(),
+			Cards:     body.Cards,
+		}
+
+		_, err := db.Collection("orders").InsertOne(request.Context(), order)
 		if err != nil {
 			log.Println(err)
 			writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		writeJSON(http.StatusCreated, writer, body)
+		writer.WriteHeader(http.StatusCreated)
 	}
 }
 

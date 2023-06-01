@@ -234,7 +234,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/app.Card"
+                                "$ref": "#/definitions/app.orderResponse"
                             }
                         }
                     }
@@ -258,16 +258,13 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app.Card"
+                            "$ref": "#/definitions/app.orderRequest"
                         }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/app.Card"
-                        }
+                    "201": {
+                        "description": "Created"
                     }
                 }
             }
@@ -340,6 +337,31 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "app.orderRequest": {
+            "type": "object",
+            "properties": {
+                "cards": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/app.Card"
+                    }
+                }
+            }
+        },
+        "app.orderResponse": {
+            "type": "object",
+            "properties": {
+                "cards": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/app.Card"
+                    }
+                },
+                "created_at": {
                     "type": "string"
                 }
             }
